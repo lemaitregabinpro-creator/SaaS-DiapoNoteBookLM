@@ -1,190 +1,334 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+
+interface CropOptions {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+interface ProcessOptions {
+  crop: CropOptions;
+  format: 'JPEG' | 'PNG' | 'WEBP';
+}
 
 interface MagicEditorProps {
-  slides: string[]; // On reçoit maintenant un tableau d'images
-  onApply: (slideIndex: number, originalImage: string, maskImage: string) => void;
+  slides: string[];
+  onApplySingle: (index: number, options: ProcessOptions) => void;
+  onApplyAll: (options: ProcessOptions) => void;
   onCancel: () => void;
 }
 
-export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApply, onCancel }) => {
+export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle, onApplyAll, onCancel }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [brushSize, setBrushSize] = useState(40);
-  const [hasDrawn, setHasDrawn] = useState(false);
+  
+  // États de rognage (en pixels)
+  const [cropTop, setCropTop] = useState(0);
+  const [cropBottom, setCropBottom] = useState(0);
+  const [cropLeft, setCropLeft] = useState(0);
+  const [cropRight, setCropRight] = useState(0);
+  
+  // État de format de sortie
+  const [outputFormat, setOutputFormat] = useState<'JPEG' | 'PNG' | 'WEBP'>('JPEG');
+  
+  // Référence pour obtenir les dimensions de l'image affichée
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0, displayWidth: 0, displayHeight: 0 });
 
-  // Reset du canvas quand on change de slide
+  // Calculer les dimensions et le ratio d'échelle
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-        // On nettoie le masque précédent
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // On remplit de nouveau avec du noir (transparent pour l'IA)
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            setHasDrawn(false);
-        }
-    }
-  }, [currentIndex]);
-
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { naturalWidth, naturalHeight } = e.currentTarget;
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.width = naturalWidth;
-      canvas.height = naturalHeight;
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.lineCap = 'round';
-        context.lineJoin = 'round';
-        context.strokeStyle = 'white';
-        context.lineWidth = brushSize;
-        context.fillStyle = 'black';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        contextRef.current = context;
+    if (imageRef.current) {
+      const img = imageRef.current;
+      const displayWidth = img.clientWidth;
+      const displayHeight = img.clientHeight;
+      
+      img.onload = () => {
+        setImageDimensions({
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          displayWidth: displayWidth,
+          displayHeight: displayHeight
+        });
+      };
+      
+      // Si l'image est déjà chargée
+      if (img.complete) {
+        setImageDimensions({
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          displayWidth: displayWidth,
+          displayHeight: displayHeight
+        });
       }
     }
-  };
+  }, [currentIndex, slides]);
 
-  // ... (Garder les fonctions startDrawing, draw, stopDrawing identiques à avant) ...
-  // Je les réécris brièvement pour la cohérence du contexte :
-  
+  // Réinitialiser les valeurs de rognage lors du changement de slide
   useEffect(() => {
-    if (contextRef.current) contextRef.current.lineWidth = brushSize;
-  }, [brushSize]);
+    setCropTop(0);
+    setCropBottom(0);
+    setCropLeft(0);
+    setCropRight(0);
+  }, [currentIndex]);
 
-  const startDrawing = ({ nativeEvent }: React.MouseEvent) => {
-    if (!canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const scaleX = canvasRef.current.width / rect.width;
-    const scaleY = canvasRef.current.height / rect.height;
-    contextRef.current?.beginPath();
-    contextRef.current?.moveTo(nativeEvent.offsetX * scaleX, nativeEvent.offsetY * scaleY);
-    setIsDrawing(true);
-    setHasDrawn(true);
+  // Calculer les ratios pour convertir les pixels d'affichage en pixels réels
+  const getScaleRatio = () => {
+    if (imageDimensions.width === 0 || imageDimensions.displayWidth === 0) return 1;
+    return imageDimensions.width / imageDimensions.displayWidth;
   };
 
-  const draw = ({ nativeEvent }: React.MouseEvent) => {
-    if (!isDrawing || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const scaleX = canvasRef.current.width / rect.width;
-    const scaleY = canvasRef.current.height / rect.height;
-    contextRef.current?.lineTo(nativeEvent.offsetX * scaleX, nativeEvent.offsetY * scaleY);
-    contextRef.current?.stroke();
+  // Convertir les valeurs d'affichage en pixels réels
+  const convertToRealPixels = (displayPixels: number) => {
+    return Math.round(displayPixels * getScaleRatio());
   };
 
-  const stopDrawing = () => {
-    contextRef.current?.closePath();
-    setIsDrawing(false);
-  };
-
-  const handleApply = () => {
-    if (canvasRef.current) {
-      const maskData = canvasRef.current.toDataURL('image/png');
-      onApply(currentIndex, slides[currentIndex], maskData);
-    }
-  };
-
-  const nextSlide = () => {
+  const handleNext = () => {
     if (currentIndex < slides.length - 1) setCurrentIndex(c => c + 1);
   };
 
-  const prevSlide = () => {
+  const handlePrev = () => {
     if (currentIndex > 0) setCurrentIndex(c => c - 1);
   };
 
+  // Actions de traitement
+  const handleSingleExport = () => {
+    const options: ProcessOptions = {
+      crop: {
+        top: convertToRealPixels(cropTop),
+        bottom: convertToRealPixels(cropBottom),
+        left: convertToRealPixels(cropLeft),
+        right: convertToRealPixels(cropRight)
+      },
+      format: outputFormat
+    };
+    onApplySingle(currentIndex, options);
+  };
+
+  const handleAllExport = () => {
+    const options: ProcessOptions = {
+      crop: {
+        top: convertToRealPixels(cropTop),
+        bottom: convertToRealPixels(cropBottom),
+        left: convertToRealPixels(cropLeft),
+        right: convertToRealPixels(cropRight)
+      },
+      format: outputFormat
+    };
+    onApplyAll(options);
+  };
+
+  // Calculer les positions des overlays en pourcentage
+  const overlayTop = (cropTop / imageDimensions.displayHeight) * 100;
+  const overlayBottom = (cropBottom / imageDimensions.displayHeight) * 100;
+  const overlayLeft = (cropLeft / imageDimensions.displayWidth) * 100;
+  const overlayRight = (cropRight / imageDimensions.displayWidth) * 100;
+
   return (
     <div className="bg-anthracite-light rounded-[2.5rem] border border-anthracite-lighter overflow-hidden shadow-2xl flex flex-col h-full">
-      {/* Header Editeur avec Navigation */}
+      {/* Header */}
       <div className="px-8 py-6 border-b border-anthracite-lighter flex justify-between items-center bg-anthracite/50 backdrop-blur-md">
         <div className="flex items-center space-x-4">
           <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
-            <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
+            <span className="font-black text-gold text-lg">{currentIndex + 1}</span>
           </div>
           <div>
-            <h3 className="font-black text-white text-lg tracking-tight">Studio de Nettoyage</h3>
+            <h3 className="font-black text-white text-lg tracking-tight">Éditeur Crop & Convert</h3>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-              Slide {currentIndex + 1} / {slides.length}
+              Slide {currentIndex + 1} sur {slides.length}
             </p>
           </div>
         </div>
 
-        {/* Contrôles de Navigation */}
         <div className="flex items-center space-x-2 bg-anthracite rounded-xl p-1 border border-anthracite-lighter">
           <button 
-            onClick={prevSlide}
-            disabled={currentIndex === 0}
-            className="p-3 hover:bg-anthracite-light rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            onClick={handlePrev} 
+            disabled={currentIndex === 0} 
+            className="p-3 hover:bg-anthracite-light rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
           >
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
+            ←
           </button>
           <div className="w-px h-6 bg-anthracite-lighter"></div>
           <button 
-            onClick={nextSlide}
-            disabled={currentIndex === slides.length - 1}
-            className="p-3 hover:bg-anthracite-light rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            onClick={handleNext} 
+            disabled={currentIndex === slides.length - 1} 
+            className="p-3 hover:bg-anthracite-light rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
           >
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
+            →
           </button>
         </div>
       </div>
       
-      {/* Zone Canva */}
-      <div className="relative flex-grow bg-anthracite overflow-hidden group flex items-center justify-center p-8">
-        <div className="relative shadow-2xl rounded-sm overflow-hidden border border-anthracite-lighter">
-            <img 
+      {/* Zone d'image avec overlays de rognage */}
+      <div className="relative flex-grow bg-anthracite overflow-hidden flex items-center justify-center p-8">
+        <div className="relative shadow-2xl border border-anthracite-lighter inline-block">
+          {/* L'image principale */}
+          <img 
+            ref={imageRef}
             src={slides[currentIndex]} 
-            onLoad={handleImageLoad}
-            alt={`Slide ${currentIndex + 1}`} 
-            className="max-h-[60vh] object-contain select-none pointer-events-none"
+            alt="Slide" 
+            className="max-h-[55vh] pointer-events-none select-none"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              setImageDimensions({
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+                displayWidth: img.clientWidth,
+                displayHeight: img.clientHeight
+              });
+            }}
+          />
+          
+          {/* Overlays semi-transparents rouges pour visualiser les zones rognées */}
+          {/* Overlay Haut */}
+          {cropTop > 0 && (
+            <div 
+              className="absolute top-0 left-0 bg-red-500/40 pointer-events-none"
+              style={{
+                left: `${overlayLeft}%`,
+                width: `${100 - overlayLeft - overlayRight}%`,
+                height: `${overlayTop}%`
+              }}
             />
-            <canvas
-            ref={canvasRef}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            className="absolute inset-0 z-10 cursor-crosshair w-full h-full opacity-60 mix-blend-screen"
+          )}
+          
+          {/* Overlay Bas */}
+          {cropBottom > 0 && (
+            <div 
+              className="absolute bottom-0 left-0 bg-red-500/40 pointer-events-none"
+              style={{
+                left: `${overlayLeft}%`,
+                width: `${100 - overlayLeft - overlayRight}%`,
+                height: `${overlayBottom}%`
+              }}
             />
+          )}
+          
+          {/* Overlay Gauche */}
+          {cropLeft > 0 && (
+            <div 
+              className="absolute top-0 left-0 bg-red-500/40 pointer-events-none"
+              style={{
+                width: `${overlayLeft}%`,
+                height: '100%'
+              }}
+            />
+          )}
+          
+          {/* Overlay Droite */}
+          {cropRight > 0 && (
+            <div 
+              className="absolute top-0 right-0 bg-red-500/40 pointer-events-none"
+              style={{
+                width: `${overlayRight}%`,
+                height: '100%'
+              }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="px-8 py-6 bg-anthracite/30 flex justify-between items-center border-t border-anthracite-lighter">
-        <div className="flex items-center space-x-4">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Taille du pinceau</label>
+      {/* Footer avec contrôles de rognage et format */}
+      <div className="px-8 py-6 bg-anthracite/30 border-t border-anthracite-lighter space-y-6">
+        {/* Contrôles de rognage */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Crop Top */}
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+              Haut: {convertToRealPixels(cropTop)}px
+            </label>
             <input 
-                type="range" 
-                min="10" 
-                max="100" 
-                value={brushSize} 
-                onChange={(e) => setBrushSize(Number(e.target.value))}
-                className="w-32 accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
+              type="range" 
+              min="0" 
+              max={imageDimensions.displayHeight || 1000} 
+              value={cropTop} 
+              onChange={(e) => setCropTop(Number(e.target.value))}
+              className="w-full accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
             />
+          </div>
+          
+          {/* Crop Bottom */}
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+              Bas: {convertToRealPixels(cropBottom)}px
+            </label>
+            <input 
+              type="range" 
+              min="0" 
+              max={imageDimensions.displayHeight || 1000} 
+              value={cropBottom} 
+              onChange={(e) => setCropBottom(Number(e.target.value))}
+              className="w-full accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
+            />
+          </div>
+          
+          {/* Crop Left */}
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+              Gauche: {convertToRealPixels(cropLeft)}px
+            </label>
+            <input 
+              type="range" 
+              min="0" 
+              max={imageDimensions.displayWidth || 1000} 
+              value={cropLeft} 
+              onChange={(e) => setCropLeft(Number(e.target.value))}
+              className="w-full accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
+            />
+          </div>
+          
+          {/* Crop Right */}
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+              Droite: {convertToRealPixels(cropRight)}px
+            </label>
+            <input 
+              type="range" 
+              min="0" 
+              max={imageDimensions.displayWidth || 1000} 
+              value={cropRight} 
+              onChange={(e) => setCropRight(Number(e.target.value))}
+              className="w-full accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
+            />
+          </div>
         </div>
-        
-        <div className="flex space-x-4">
-            <button onClick={onCancel} className="px-6 py-3 text-slate-500 uppercase font-black text-xs hover:text-white transition-colors">
-            Fermer
+
+        {/* Sélecteur de format et boutons d'action */}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+              Format:
+            </label>
+            <select 
+              value={outputFormat} 
+              onChange={(e) => setOutputFormat(e.target.value as 'JPEG' | 'PNG' | 'WEBP')}
+              className="px-4 py-2 bg-anthracite border border-anthracite-lighter rounded-xl text-white text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-gold cursor-pointer"
+            >
+              <option value="JPEG">JPEG</option>
+              <option value="PNG">PNG</option>
+              <option value="WEBP">WEBP</option>
+            </select>
+          </div>
+          
+          <div className="flex space-x-3">
+            <button 
+              onClick={onCancel}
+              className="px-6 py-3 rounded-xl text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              Annuler
             </button>
             <button 
-            onClick={handleApply}
-            disabled={!hasDrawn}
-            className={`px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg ${
-                hasDrawn ? 'bg-gold text-anthracite hover:bg-gold-light shadow-gold/10' : 'bg-anthracite-lighter text-slate-600'
-            }`}
+              onClick={handleSingleExport}
+              className="px-6 py-3 rounded-xl border border-gold/20 text-gold hover:bg-gold/10 text-[10px] font-black uppercase tracking-widest transition-all"
             >
-            {hasDrawn ? 'Nettoyer cette slide' : 'Dessinez pour nettoyer'}
+              Traiter cette slide
             </button>
+            <button 
+              onClick={handleAllExport}
+              className="px-8 py-3 rounded-xl bg-gold text-anthracite hover:bg-gold-light shadow-lg shadow-gold/10 text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              Tout Traiter (ZIP)
+            </button>
+          </div>
         </div>
       </div>
     </div>

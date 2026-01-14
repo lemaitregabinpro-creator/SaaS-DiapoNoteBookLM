@@ -10,6 +10,7 @@ interface ResultsProps {
 
 export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) => {
   const [isZipping, setIsZipping] = useState(false);
+  const isSingle = slides.length === 1;
 
   // Protection contre les slides undefined ou vides
   if (!slides || slides.length === 0) {
@@ -36,38 +37,52 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
     );
   }
 
-  const handleDownloadZip = async () => {
-    setIsZipping(true);
-    const zip = new JSZip();
-    
-    // Création du dossier dans le zip
-    const folder = zip.folder("SmartBookLM_Cleaned");
-
-    // Ajout de chaque image au zip
-    if (!slides || slides.length === 0) {
-      alert("Aucune slide à exporter.");
-      setIsZipping(false);
-      return;
-    }
-
-    slides.forEach((slideDataUrl, index) => {
-      // On retire l'en-tête "data:image/jpeg;base64," pour avoir le binaire pur
-      const base64Data = slideDataUrl.split(',')[1];
-      if (folder) {
-        // On nomme les fichiers slide_1.jpg, slide_2.jpg, etc.
-        folder.file(`slide_${index + 1}.jpg`, base64Data, { base64: true });
+  const handleDownload = async () => {
+    if (isSingle) {
+      // Téléchargement direct d'une image unique
+      try {
+        // Convertir le data URL en blob
+        const response = await fetch(slides[0]);
+        const blob = await response.blob();
+        saveAs(blob, `Slide_Cleaned.jpg`);
+      } catch (error) {
+        console.error("Erreur lors du téléchargement de l'image", error);
+        alert("Une erreur est survenue lors du téléchargement.");
       }
-    });
+    } else {
+      // Téléchargement ZIP pour plusieurs slides
+      setIsZipping(true);
+      const zip = new JSZip();
+      
+      // Création du dossier dans le zip
+      const folder = zip.folder("SmartBookLM_Cleaned");
 
-    try {
-      // Génération et téléchargement
-      const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `${fileName.replace(/\.[^/.]+$/, "")}_SmartClean.zip`);
-    } catch (error) {
-      console.error("Erreur lors de la création du zip", error);
-      alert("Une erreur est survenue lors de la création de l'archive.");
-    } finally {
-      setIsZipping(false);
+      // Ajout de chaque image au zip
+      if (!slides || slides.length === 0) {
+        alert("Aucune slide à exporter.");
+        setIsZipping(false);
+        return;
+      }
+
+      slides.forEach((slideDataUrl, index) => {
+        // On retire l'en-tête "data:image/jpeg;base64," pour avoir le binaire pur
+        const base64Data = slideDataUrl.split(',')[1];
+        if (folder) {
+          // On nomme les fichiers slide_1.jpg, slide_2.jpg, etc.
+          folder.file(`slide_${index + 1}.jpg`, base64Data, { base64: true });
+        }
+      });
+
+      try {
+        // Génération et téléchargement
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `${fileName.replace(/\.[^/.]+$/, "")}_SmartClean.zip`);
+      } catch (error) {
+        console.error("Erreur lors de la création du zip", error);
+        alert("Une erreur est survenue lors de la création de l'archive.");
+      } finally {
+        setIsZipping(false);
+      }
     }
   };
 
@@ -92,7 +107,7 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
           </button>
           
           <button 
-            onClick={handleDownloadZip}
+            onClick={handleDownload}
             disabled={isZipping}
             className={`flex items-center justify-center px-10 py-4 bg-gold text-anthracite rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-gold-light transition-all shadow-2xl shadow-gold/20 active:scale-95 ${isZipping ? 'opacity-70 cursor-wait' : ''}`}
           >
@@ -109,45 +124,60 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
                 <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Exporter l'Archive (ZIP)
+                {isSingle ? "Télécharger l'Image" : "Exporter l'Archive (ZIP)"}
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Grille des slides réelles */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        {slides.map((slide, i) => (
-          <div key={i} className="group relative aspect-[16/10] bg-anthracite rounded-3xl overflow-hidden border border-anthracite-lighter transition-all duration-500 hover:border-gold/50 hover:scale-[1.05] cursor-pointer shadow-xl">
-            {/* Image réelle */}
+      {/* Affichage des slides : grille pour plusieurs, grande image pour une seule */}
+      {isSingle ? (
+        <div className="flex justify-center">
+          <div className="max-w-4xl w-full group relative bg-anthracite rounded-3xl overflow-hidden border border-anthracite-lighter shadow-2xl">
             <img 
-              src={slide} 
-              alt={`Slide ${i + 1}`}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              src={slides[0]} 
+              alt="Slide nettoyée"
+              className="w-full h-auto object-contain"
             />
-            
-            {/* Numéro de slide */}
-            <div className="absolute top-2 left-2 px-2 py-1 bg-anthracite/80 backdrop-blur text-white rounded-lg text-[8px] font-black uppercase tracking-widest border border-white/10">
-              #{i + 1}
-            </div>
-
-            {/* Overlay au survol */}
-            <div className="absolute inset-0 bg-anthracite/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-              <span className="text-gold font-black text-xs uppercase tracking-widest transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                Aperçu HD
-              </span>
-            </div>
-            
-            {/* Badge Purifié */}
-            <div className="absolute top-2 right-2 px-2 py-1 bg-gold text-anthracite rounded-lg text-[8px] font-black uppercase tracking-widest shadow-xl">
+            <div className="absolute top-4 right-4 px-3 py-1.5 bg-gold text-anthracite rounded-lg text-[10px] font-black uppercase tracking-widest shadow-xl">
               Clean
             </div>
-            
-            <div className="absolute inset-0 border-2 border-gold/0 group-hover:border-gold/20 rounded-3xl transition-all pointer-events-none"></div>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {slides.map((slide, i) => (
+            <div key={i} className="group relative aspect-[16/10] bg-anthracite rounded-3xl overflow-hidden border border-anthracite-lighter transition-all duration-500 hover:border-gold/50 hover:scale-[1.05] cursor-pointer shadow-xl">
+              {/* Image réelle */}
+              <img 
+                src={slide} 
+                alt={`Slide ${i + 1}`}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+              
+              {/* Numéro de slide */}
+              <div className="absolute top-2 left-2 px-2 py-1 bg-anthracite/80 backdrop-blur text-white rounded-lg text-[8px] font-black uppercase tracking-widest border border-white/10">
+                #{i + 1}
+              </div>
+
+              {/* Overlay au survol */}
+              <div className="absolute inset-0 bg-anthracite/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <span className="text-gold font-black text-xs uppercase tracking-widest transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                  Aperçu HD
+                </span>
+              </div>
+              
+              {/* Badge Purifié */}
+              <div className="absolute top-2 right-2 px-2 py-1 bg-gold text-anthracite rounded-lg text-[8px] font-black uppercase tracking-widest shadow-xl">
+                Clean
+              </div>
+              
+              <div className="absolute inset-0 border-2 border-gold/0 group-hover:border-gold/20 rounded-3xl transition-all pointer-events-none"></div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="bg-gold/5 border border-gold/10 rounded-3xl p-8 flex items-start space-x-6">
         <div className="p-3 bg-gold text-anthracite rounded-xl shadow-lg shrink-0">
@@ -158,7 +188,10 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
         <div className="space-y-1">
           <h4 className="text-white font-black text-sm uppercase tracking-widest">Note Technique</h4>
           <p className="text-sm text-slate-400 leading-relaxed font-medium">
-            Toutes les slides ont été traitées. L'archive ZIP contient vos images en format JPEG haute qualité, prêtes à être réinsérées dans PowerPoint ou Keynote.
+            {isSingle 
+              ? "Votre slide a été traitée. L'image est en format JPEG haute qualité, prête à être réinsérée dans PowerPoint ou Keynote."
+              : "Toutes les slides ont été traitées. L'archive ZIP contient vos images en format JPEG haute qualité, prêtes à être réinsérées dans PowerPoint ou Keynote."
+            }
           </p>
         </div>
       </div>
