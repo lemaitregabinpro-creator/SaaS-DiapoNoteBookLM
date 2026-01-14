@@ -1,0 +1,6 @@
+
+{
+  "name": "SmartBookLM",
+  "description": "Un outil SaaS premium pour nettoyer automatiquement vos slides et les exporter en haute qualité, optimisé pour NotebookLM.",
+  "requestFramePermissions": []
+}
