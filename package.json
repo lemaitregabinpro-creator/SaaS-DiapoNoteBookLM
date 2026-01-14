@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.90.1",
+    "dexie": "^4.2.1",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "pdfjs-dist": "^5.4.530",

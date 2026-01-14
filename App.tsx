@@ -10,8 +10,11 @@ import { Account } from './components/Account';
 import { AuthModal } from './components/AuthModal';
 import { MagicEditor } from './components/MagicEditor';
 import { FloatingBackgroundElements } from './components/FloatingBackgroundElements';
+import { FAQ } from './components/FAQ';
+import { Footer } from './components/Footer';
 import { AppStatus, UploadedFile, User, PlanType, View } from './types';
 import { convertPdfToImages } from './utils/imageProcessor.ts';
+import { useAuth } from './contexts/AuthContext';
 
 // Interface pour les options de traitement
 interface CropOptions {
@@ -102,7 +105,33 @@ const processSlideWithCrop = async (originalSrc: string, options: ProcessOptions
   });
 };
 
+// Fonction utilitaire pour convertir UserProfile (Supabase) en User (types locaux)
+const convertUserProfileToUser = (userProfile: any, session: any): User | null => {
+  if (!userProfile || !session) return null;
+  
+  // Mapper le plan de Supabase vers PlanType
+  const planMap: Record<string, PlanType> = {
+    'guest': PlanType.GUEST,
+    'free': PlanType.FREE,
+    'essential': PlanType.ESSENTIAL,
+    'pro': PlanType.PRO,
+    'lifetime': PlanType.LIFETIME,
+  };
+
+  return {
+    id: userProfile.id || session.user.id,
+    name: userProfile.full_name || session.user.email?.split('@')[0] || 'Utilisateur',
+    email: userProfile.email || session.user.email || '',
+    plan: planMap[userProfile.plan] || PlanType.FREE,
+    usageCount: userProfile.credits || 0,
+    avatar: userProfile.avatar_url || undefined,
+  };
+};
+
 function App() {
+  // Utiliser le contexte d'authentification Supabase
+  const { session, userProfile, loading: authLoading, signInWithGoogle, signOut } = useAuth();
+  
   const [currentView, setCurrentView] = useState<View>(View.HOME);
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [progress, setProgress] = useState(0);
@@ -111,11 +140,10 @@ function App() {
   const [processedSlides, setProcessedSlides] = useState<string[]>([]); // Slides traitées avec masques
   const [isConverting, setIsConverting] = useState(false);
   
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('sc_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  // Convertir userProfile en User pour la compatibilité
+  const user = convertUserProfileToUser(userProfile, session);
   
+  // Garder guestUsage pour les utilisateurs non connectés
   const [guestUsage, setGuestUsage] = useState<number>(() => {
     return parseInt(localStorage.getItem('sc_guest_usage') || '0');
   });
@@ -123,14 +151,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('sc_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('sc_user');
-    }
-  }, [user]);
-
+  // Sauvegarder guestUsage dans localStorage
   useEffect(() => {
     localStorage.setItem('sc_guest_usage', guestUsage.toString());
   }, [guestUsage]);
@@ -205,9 +226,8 @@ function App() {
       const processedImage = await processSlideWithCrop(originalSlides[index], options);
       
       // Mettre à jour le compteur d'utilisation
-      if (user) {
-        setUser(prev => prev ? { ...prev, usageCount: prev.usageCount + 1 } : null);
-      } else {
+      // Note: Dans une vraie app, on mettrait à jour le profil dans Supabase ici
+      if (!user) {
         setGuestUsage(prev => prev + 1);
       }
       
@@ -237,9 +257,8 @@ function App() {
       );
       
       // Mettre à jour le compteur d'utilisation
-      if (user) {
-        setUser(prev => prev ? { ...prev, usageCount: prev.usageCount + 1 } : null);
-      } else {
+      // Note: Dans une vraie app, on mettrait à jour le profil dans Supabase ici
+      if (!user) {
         setGuestUsage(prev => prev + 1);
       }
       
@@ -260,14 +279,13 @@ function App() {
     setProcessedSlides([]);
   };
 
-  const login = (userData: User) => {
-    setUser(userData);
+  const handleLogin = async () => {
+    await signInWithGoogle();
     setShowAuthModal(false);
-    setCurrentView(View.HOME);
   };
 
-  const logout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    await signOut();
     setCurrentView(View.HOME);
   };
 
@@ -276,7 +294,7 @@ function App() {
       case View.PRICING:
         return <Pricing user={user} onUpgrade={() => setShowAuthModal(true)} />;
       case View.ACCOUNT:
-        return user ? <Account user={user} onLogout={logout} /> : null;
+        return user ? <Account user={user} onLogout={handleLogout} /> : null;
       case View.MISSION:
         return <Mission />;
       default:
@@ -336,6 +354,18 @@ function App() {
     }
   };
 
+  // Afficher un écran de chargement pendant la vérification de l'authentification
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-anthracite">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-gold/20 border-t-gold rounded-full animate-spin mx-auto"></div>
+          <p className="text-slate-400 text-sm font-medium">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-anthracite selection:bg-gold selection:text-anthracite">
       <FloatingBackgroundElements />
@@ -347,29 +377,15 @@ function App() {
       />
       <main className="flex-grow container mx-auto px-4 py-8 md:py-16 max-w-7xl">
         {renderCurrentView()}
+        {/* Ajouter la FAQ ici pour qu'elle soit visible sur la home */}
+        {currentView === View.HOME && status === AppStatus.IDLE && <FAQ />}
       </main>
-      <footer className="py-16 bg-anthracite border-t border-anthracite-lighter">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setCurrentView(View.HOME)}>
-            <div className="w-8 h-8 bg-gold rounded-lg flex items-center justify-center">
-              <span className="text-[12px] text-anthracite font-black">SB</span>
-            </div>
-            <span className="text-lg font-black text-slate-100 tracking-tight">SmartBook<span className="text-gold font-medium">LM</span></span>
-          </div>
-          <p className="text-slate-500 text-sm font-medium">
-            &copy; {new Date().getFullYear()} SmartUnityIA. L'élégance technologique au service de la cause animale.
-          </p>
-          <div className="flex space-x-8">
-            <button onClick={() => setCurrentView(View.MISSION)} className="text-slate-400 hover:text-gold text-xs font-bold uppercase tracking-widest transition-colors">Notre Mission</button>
-            <a href="#" className="text-slate-400 hover:text-gold text-xs font-bold uppercase tracking-widest transition-colors">CGV</a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
       {showAuthModal && (
         <AuthModal 
           isOpen={showAuthModal} 
           onClose={() => { setShowAuthModal(false); setLimitReached(false); }} 
-          onLogin={login}
+          onLogin={handleLogin}
           limitReached={limitReached}
         />
       )}
