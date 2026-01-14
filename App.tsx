@@ -9,13 +9,17 @@ import { Mission } from './components/Mission';
 import { Account } from './components/Account';
 import { AuthModal } from './components/AuthModal';
 import { MagicEditor } from './components/MagicEditor';
+import { FloatingBackgroundElements } from './components/FloatingBackgroundElements';
 import { AppStatus, UploadedFile, User, PlanType, View } from './types';
+import { convertPdfToImages } from './utils/pdfConverter';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>(View.HOME);
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [progress, setProgress] = useState(0);
   const [file, setFile] = useState<UploadedFile | null>(null);
+  const [slides, setSlides] = useState<string[]>([]);
+  const [isConverting, setIsConverting] = useState(false);
   
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('sc_user');
@@ -68,20 +72,39 @@ function App() {
     return true;
   };
 
-  const handleFileUpload = (uploadedFile: File) => {
+  const handleFileUpload = async (uploadedFile: File) => {
     if (!checkLimits()) return;
     
-    // Simuler un preview pour l'éditeur
+    // Vérifier que c'est un PDF (pour l'instant, on gère seulement PDF)
+    if (!uploadedFile.name.endsWith('.pdf')) {
+      alert("Seuls les fichiers PDF sont supportés pour le moment.");
+      return;
+    }
+
+    setIsConverting(true);
     setFile({
       name: uploadedFile.name,
       size: uploadedFile.size,
-      type: uploadedFile.type,
-      previewUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=1200"
+      type: uploadedFile.type
     });
-    setStatus(AppStatus.EDITING);
+
+    try {
+      // Convertir le PDF en images
+      const images = await convertPdfToImages(uploadedFile);
+      setSlides(images);
+      setStatus(AppStatus.EDITING);
+    } catch (error) {
+      console.error("Erreur lors de la conversion PDF:", error);
+      alert("Erreur lors de la conversion du PDF. Veuillez réessayer.");
+      setFile(null);
+    } finally {
+      setIsConverting(false);
+    }
   };
 
-  const handleApplyClean = () => {
+  const handleApplyClean = (slideIndex: number, originalImage: string, maskImage: string) => {
+    // Ici, on pourrait traiter chaque slide individuellement
+    // Pour l'instant, on simule le traitement de toutes les slides
     setStatus(AppStatus.PROCESSING);
     let currentProgress = 0;
     const interval = setInterval(() => {
@@ -108,6 +131,7 @@ function App() {
     setStatus(AppStatus.IDLE);
     setProgress(0);
     setFile(null);
+    setSlides([]);
   };
 
   const login = (userData: User) => {
@@ -133,26 +157,32 @@ function App() {
         return (
           <div className="space-y-12">
             {status === AppStatus.IDLE && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <section className="bg-anthracite-light rounded-[2.5rem] shadow-2xl border border-anthracite-lighter overflow-hidden transform transition-all hover:shadow-gold/5">
-                  <div className="p-6 md:p-12">
-                    <Hero />
-                    <div className="mt-8 md:mt-12 max-w-3xl mx-auto">
-                      <FileUploader onFileSelect={handleFileUpload} />
-                      {!user && (
-                        <p className="text-center mt-6 text-slate-500 text-xs font-bold uppercase tracking-widest">
-                          Essai gratuit : {2 - guestUsage} restants sans compte
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-12">
+                <Hero />
+                <div className="max-w-3xl mx-auto">
+                  <FileUploader onFileSelect={handleFileUpload} />
+                  {!user && (
+                    <p className="text-center mt-6 text-slate-500 text-xs font-bold uppercase tracking-widest">
+                      Essai gratuit : {2 - guestUsage} restants sans compte
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
-            {status === AppStatus.EDITING && file && (
+            {isConverting && (
+              <div className="bg-anthracite-light rounded-[2.5rem] border border-anthracite-lighter p-16 text-center space-y-8 animate-in fade-in zoom-in duration-500">
+                <div className="w-24 h-24 border-4 border-gold/20 border-t-gold rounded-full animate-spin mx-auto"></div>
+                <div className="max-w-md mx-auto space-y-4">
+                  <h3 className="text-2xl font-black text-white uppercase tracking-widest">Conversion en cours</h3>
+                  <p className="text-slate-400 text-sm font-medium">Extraction des slides du PDF...</p>
+                </div>
+              </div>
+            )}
+
+            {status === AppStatus.EDITING && slides.length > 0 && (
               <MagicEditor 
-                imageUrl={file.previewUrl!} 
+                slides={slides}
                 onApply={handleApplyClean} 
                 onCancel={handleReset}
               />
@@ -172,7 +202,7 @@ function App() {
             )}
 
             {status === AppStatus.COMPLETE && (
-              <Results fileName={file?.name || 'Slides'} onReset={handleReset} />
+              <Results fileName={file?.name || 'Slides'} slides={slides} onReset={handleReset} />
             )}
           </div>
         );
@@ -181,6 +211,7 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-anthracite selection:bg-gold selection:text-anthracite">
+      <FloatingBackgroundElements />
       <Header 
         user={user} 
         currentView={currentView} 

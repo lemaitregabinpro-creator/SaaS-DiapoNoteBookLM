@@ -45,7 +45,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelect }) => {
       className={`
         relative group cursor-pointer transition-all duration-500
         border-2 border-dashed rounded-[2.5rem] p-16 text-center
-        ${isDragging ? 'border-gold bg-gold/5 scale-[1.01]' : 'border-anthracite-lighter bg-anthracite hover:border-gold/40 hover:bg-anthracite-lighter'}
+        ${isDragging ? 'border-gold bg-gold/10 scale-[1.01]' : 'border-anthracite-lighter bg-anthracite/50 backdrop-blur-sm hover:border-gold/40 hover:bg-anthracite-lighter/60'}
       `}
     >
       <input 
