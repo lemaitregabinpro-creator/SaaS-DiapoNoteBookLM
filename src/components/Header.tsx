@@ -14,6 +14,7 @@ export const Header: React.FC<HeaderProps> = ({ user, currentView, onNavigate, o
     { label: 'Outil', view: View.HOME },
     { label: 'Tarifs', view: View.PRICING },
     { label: 'Mission', view: View.MISSION },
+    { label: 'Roadmap', view: View.FEED },
   ];
 
   if (user) {

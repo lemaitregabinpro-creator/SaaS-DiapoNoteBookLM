@@ -11,7 +11,8 @@ export enum View {
   HOME = 'HOME',
   PRICING = 'PRICING',
   ACCOUNT = 'ACCOUNT',
-  MISSION = 'MISSION'
+  MISSION = 'MISSION',
+  FEED = 'FEED'
 }
 
 export enum PlanType {
@@ -52,4 +53,17 @@ export interface ProcessOptions {
   crop: CropOptions;
   format: ImageFormat;
   removeWatermark?: boolean;
+}
+
+// Types pour la Roadmap Communautaire
+export interface FeatureRequest {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  votes_count: number;
+  status: 'pending' | 'planned' | 'completed';
+  created_at: string;
+  updated_at?: string;
+  has_voted?: boolean; // Champ optionnel pour le frontend
 }

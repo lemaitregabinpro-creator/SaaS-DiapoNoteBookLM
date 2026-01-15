@@ -2,7 +2,7 @@ import React from 'react';
 
 export const Mission: React.FC = () => {
   return (
-    <section id="mission" className="py-24 md:py-32 relative">
+    <section id="mission" className="py-8 md:py-12 relative">
       {/* SVG décoratifs très subtils en arrière-plan */}
       <div className="absolute inset-0 opacity-5 pointer-events-none overflow-hidden">
         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">

@@ -52,7 +52,7 @@ export const FAQ: React.FC = () => {
   ];
 
   return (
-    <section className="py-20 max-w-4xl mx-auto px-6">
+    <section className="py-12 max-w-4xl mx-auto px-6">
       <div className="text-center mb-16">
         <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
           Questions <span className="text-gold">Fréquentes</span>

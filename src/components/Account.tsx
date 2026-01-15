@@ -90,7 +90,7 @@ export const Account: React.FC<AccountProps> = ({ user, onLogout }) => {
   );
 
   return (
-    <section id="account" className="py-12 md:py-20 min-h-screen">
+    <section id="account" className="py-8 md:py-12 min-h-screen">
       <div className="container mx-auto px-6 max-w-7xl">
         {/* Header Global */}
         <div className="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-anthracite-lighter">

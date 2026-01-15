@@ -7,6 +7,7 @@ import { Results } from './components/Results';
 import { Pricing } from './components/Pricing';
 import { Mission } from './components/Mission';
 import { Account } from './components/Account';
+import { FeatureFeed } from './components/FeatureFeed';
 import { AuthModal } from './components/AuthModal';
 import { MagicEditor } from './components/MagicEditor';
 import { FloatingBackgroundElements } from './components/FloatingBackgroundElements';
@@ -322,6 +323,8 @@ function App() {
         return user ? <Account user={user} onLogout={handleLogout} /> : null;
       case View.MISSION:
         return <Mission />;
+      case View.FEED:
+        return <FeatureFeed user={user} onAuthClick={() => setShowAuthModal(true)} />;
       default:
         return (
           <div className="space-y-12">
@@ -400,7 +403,7 @@ function App() {
         onNavigate={setCurrentView} 
         onAuthClick={() => setShowAuthModal(true)} 
       />
-      <main className="flex-grow container mx-auto px-4 py-8 md:py-16 max-w-7xl">
+      <main className="flex-grow container mx-auto px-4 py-4 md:py-6 max-w-7xl">
         {renderCurrentView()}
         {/* Ajouter la FAQ ici pour qu'elle soit visible sur la home */}
         {currentView === View.HOME && status === AppStatus.IDLE && <FAQ />}
