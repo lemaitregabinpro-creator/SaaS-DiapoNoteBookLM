@@ -25,15 +25,13 @@ export const Footer: React.FC = () => {
             <h4 className="text-white font-black uppercase tracking-widest text-xs">Écosystème SmartUnity</h4>
             <ul className="space-y-4">
               {/* Remplace les # par tes vrais liens plus tard */}
-              <li><a href="#" className="text-slate-400 hover:text-gold transition-colors text-sm font-medium flex items-center"><span className="w-1.5 h-1.5 bg-gold/50 rounded-full mr-3"></span>SmartUnity Assets</a></li>
-              <li><a href="#" className="text-slate-400 hover:text-gold transition-colors text-sm font-medium flex items-center"><span className="w-1.5 h-1.5 bg-gold/50 rounded-full mr-3"></span>Templates Notion</a></li>
-              <li><a href="#" className="text-slate-400 hover:text-gold transition-colors text-sm font-medium flex items-center"><span className="w-1.5 h-1.5 bg-gold/50 rounded-full mr-3"></span>Services Dev</a></li>
+              <li><a href="https://smartunityia.fr" className="text-slate-400 hover:text-gold transition-colors text-sm font-medium flex items-center"><span className="w-1.5 h-1.5 bg-gold/50 rounded-full mr-3"></span>SmartUnityIA "Local"</a></li>
             </ul>
           </div>
 
           {/* Réseaux / Influence */}
           <div className="space-y-6">
-            <h4 className="text-white font-black uppercase tracking-widest text-xs">Suivre Gabin</h4>
+            <h4 className="text-white font-black uppercase tracking-widest text-xs">Suivre SmartUnityIA</h4>
             <div className="flex space-x-4">
               {/* LinkedIn */}
               <a href="#" className="w-10 h-10 rounded-full bg-anthracite-light border border-anthracite-lighter flex items-center justify-center text-slate-400 hover:bg-gold hover:text-anthracite hover:border-gold transition-all duration-300">
