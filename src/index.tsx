@@ -1,4 +1,5 @@
 
+/// <reference types="./vite-env.d" />
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';

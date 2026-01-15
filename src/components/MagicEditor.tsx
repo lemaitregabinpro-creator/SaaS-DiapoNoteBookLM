@@ -10,6 +10,7 @@ interface CropOptions {
 interface ProcessOptions {
   crop: CropOptions;
   format: 'JPEG' | 'PNG' | 'WEBP';
+  removeWatermark?: boolean;
 }
 
 interface MagicEditorProps {
@@ -30,6 +31,9 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
   
   // État de format de sortie
   const [outputFormat, setOutputFormat] = useState<'JPEG' | 'PNG' | 'WEBP'>('JPEG');
+  
+  // État pour l'effaceur magique de filigrane
+  const [isMagicRemovalEnabled, setIsMagicRemovalEnabled] = useState(false);
   
   // Référence pour obtenir les dimensions de l'image affichée
   const imageRef = useRef<HTMLImageElement>(null);
@@ -99,7 +103,8 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
         left: convertToRealPixels(cropLeft),
         right: convertToRealPixels(cropRight)
       },
-      format: outputFormat
+      format: outputFormat,
+      removeWatermark: isMagicRemovalEnabled
     };
     onApplySingle(currentIndex, options);
   };
@@ -112,7 +117,8 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
         left: convertToRealPixels(cropLeft),
         right: convertToRealPixels(cropRight)
       },
-      format: outputFormat
+      format: outputFormat,
+      removeWatermark: isMagicRemovalEnabled
     };
     onApplyAll(options);
   };
@@ -229,6 +235,25 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
 
       {/* Footer avec contrôles de rognage et format */}
       <div className="px-8 py-6 bg-anthracite/30 border-t border-anthracite-lighter space-y-6">
+        {/* Section Intelligence Artificielle */}
+        <div className="bg-anthracite-light border border-gold/30 rounded-xl p-4 space-y-3">
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="magicRemoval"
+              checked={isMagicRemovalEnabled}
+              onChange={(e) => setIsMagicRemovalEnabled(e.target.checked)}
+              className="w-4 h-4 accent-gold rounded cursor-pointer"
+            />
+            <label htmlFor="magicRemoval" className="text-white text-sm font-bold cursor-pointer">
+              ✨ Effaceur Magique NotebookLM
+            </label>
+          </div>
+          <p className="text-slate-400 text-xs ml-7">
+            Reconstruit le fond derrière le logo automatiquement.
+          </p>
+        </div>
+
         {/* Contrôles de rognage */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Crop Top */}

@@ -13,7 +13,7 @@ import { FloatingBackgroundElements } from './components/FloatingBackgroundEleme
 import { FAQ } from './components/FAQ';
 import { Footer } from './components/Footer';
 import { AppStatus, UploadedFile, User, PlanType, View } from './types';
-import { convertPdfToImages } from './utils/imageProcessor.ts';
+import { convertPdfToImages, healWatermark } from './utils/imageProcessor';
 import { useAuth } from './contexts/AuthContext';
 
 // Interface pour les options de traitement
@@ -27,6 +27,7 @@ interface CropOptions {
 interface ProcessOptions {
   crop: CropOptions;
   format: 'JPEG' | 'PNG' | 'WEBP';
+  removeWatermark?: boolean;
 }
 
 // Utilitaire pour appliquer le rognage et convertir le format
@@ -43,23 +44,42 @@ const processSlideWithCrop = async (originalSrc: string, options: ProcessOptions
         return;
       }
 
-      // Calculer les dimensions après rognage
+      // 1. Configurer le canvas avec les dimensions originales de l'image
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      // 2. Dessiner l'image complète sur le canvas
+      ctx.drawImage(img, 0, 0);
+
+      // 3. Si l'option removeWatermark est activée, appliquer l'inpainting AVANT le rognage
+      if (options.removeWatermark) {
+        healWatermark(ctx, img.width, img.height);
+      }
+
+      // 4. Calculer les dimensions après rognage
       const cropWidth = img.width - options.crop.left - options.crop.right;
       const cropHeight = img.height - options.crop.top - options.crop.bottom;
 
-      // Vérifier que les dimensions sont valides
+      // 5. Vérifier que les dimensions sont valides
       if (cropWidth <= 0 || cropHeight <= 0) {
         reject(new Error('Les valeurs de rognage sont invalides'));
         return;
       }
 
-      // Configurer le canvas avec les nouvelles dimensions
-      canvas.width = cropWidth;
-      canvas.height = cropHeight;
+      // 6. Créer un nouveau canvas pour l'image rognée
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = cropWidth;
+      croppedCanvas.height = cropHeight;
+      const croppedCtx = croppedCanvas.getContext('2d');
 
-      // Dessiner la partie rognée de l'image
-      ctx.drawImage(
-        img,
+      if (!croppedCtx) {
+        reject(new Error('Impossible de créer le contexte canvas pour le rognage'));
+        return;
+      }
+
+      // 7. Dessiner la partie rognée de l'image (qui a déjà été traitée pour le filigrane)
+      croppedCtx.drawImage(
+        canvas,
         options.crop.left,      // Source X
         options.crop.top,        // Source Y
         cropWidth,               // Source Width
@@ -70,7 +90,7 @@ const processSlideWithCrop = async (originalSrc: string, options: ProcessOptions
         cropHeight               // Destination Height
       );
 
-      // Convertir selon le format demandé
+      // 8. Convertir selon le format demandé (utiliser le canvas rogné)
       let mimeType: string;
       let quality: number | undefined;
 
@@ -92,11 +112,28 @@ const processSlideWithCrop = async (originalSrc: string, options: ProcessOptions
           quality = 0.9;
       }
 
-      const dataUrl = quality !== undefined 
-        ? canvas.toDataURL(mimeType, quality)
-        : canvas.toDataURL(mimeType);
-
-      resolve(dataUrl);
+      // Gérer les erreurs de conversion (WEBP peut ne pas être supporté)
+      try {
+        const dataUrl = quality !== undefined 
+          ? croppedCanvas.toDataURL(mimeType, quality)
+          : croppedCanvas.toDataURL(mimeType);
+        
+        // Vérifier que la conversion a réussi
+        if (!dataUrl || dataUrl === 'data:,') {
+          throw new Error(`Échec de la conversion en ${options.format}`);
+        }
+        
+        resolve(dataUrl);
+      } catch (error) {
+        // Fallback sur JPEG si le format demandé échoue (ex: WEBP non supporté)
+        console.warn(`Format ${options.format} non supporté, fallback sur JPEG:`, error);
+        try {
+          const fallbackDataUrl = croppedCanvas.toDataURL('image/jpeg', 0.9);
+          resolve(fallbackDataUrl);
+        } catch (fallbackError) {
+          reject(new Error(`Impossible de convertir l'image: ${fallbackError}`));
+        }
+      }
     };
     
     img.onerror = () => {
