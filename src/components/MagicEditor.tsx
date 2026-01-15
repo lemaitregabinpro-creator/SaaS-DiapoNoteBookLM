@@ -1,17 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-
-interface CropOptions {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
-
-interface ProcessOptions {
-  crop: CropOptions;
-  format: 'JPEG' | 'PNG' | 'WEBP';
-  removeWatermark?: boolean;
-}
+import { ProcessOptions, ImageFormat } from '../types';
 
 interface MagicEditorProps {
   slides: string[];
@@ -30,7 +18,7 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
   const [cropRight, setCropRight] = useState(0);
   
   // État de format de sortie
-  const [outputFormat, setOutputFormat] = useState<'JPEG' | 'PNG' | 'WEBP'>('JPEG');
+  const [outputFormat, setOutputFormat] = useState<ImageFormat>('JPEG');
   
   // État pour l'effaceur magique de filigrane
   const [isMagicRemovalEnabled, setIsMagicRemovalEnabled] = useState(false);
@@ -317,23 +305,43 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
           </div>
         </div>
 
-        {/* Sélecteur de format et boutons d'action */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-              Format:
-            </label>
-            <select 
-              value={outputFormat} 
-              onChange={(e) => setOutputFormat(e.target.value as 'JPEG' | 'PNG' | 'WEBP')}
-              className="px-4 py-2 bg-anthracite border border-anthracite-lighter rounded-xl text-white text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-gold cursor-pointer"
-            >
-              <option value="JPEG">JPEG</option>
-              <option value="PNG">PNG</option>
-              <option value="WEBP">WEBP</option>
-            </select>
+        {/* Section Format de sortie */}
+        <div className="bg-anthracite-light border border-gold/30 rounded-xl p-4 space-y-3">
+          <label className="text-[9px] font-black text-gold uppercase tracking-widest block">
+            Format de sortie
+          </label>
+          <div className="flex items-center space-x-2">
+            {(['JPEG', 'PNG', 'WEBP'] as ImageFormat[]).map((format) => (
+              <button
+                key={format}
+                onClick={() => setOutputFormat(format)}
+                className={`flex-1 px-4 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  outputFormat === format
+                    ? 'bg-gold text-anthracite shadow-lg shadow-gold/20 border border-gold'
+                    : 'bg-anthracite text-slate-400 border border-anthracite-lighter hover:border-gold/50 hover:text-white'
+                }`}
+              >
+                {format === 'JPEG' && '📷 JPEG'}
+                {format === 'PNG' && '🎨 PNG'}
+                {format === 'WEBP' && '⚡ WEBP'}
+              </button>
+            ))}
           </div>
-          
+          <div className="text-[9px] text-slate-500 font-medium space-y-1">
+            {outputFormat === 'JPEG' && (
+              <p>Standard, léger • Idéal pour le partage</p>
+            )}
+            {outputFormat === 'PNG' && (
+              <p>Haute qualité, sans perte • Parfait pour l'édition</p>
+            )}
+            {outputFormat === 'WEBP' && (
+              <p>Moderne, optimisé web • Meilleure compression</p>
+            )}
+          </div>
+        </div>
+
+        {/* Boutons d'action */}
+        <div className="flex justify-end items-center">
           <div className="flex space-x-3">
             <button 
               onClick={onCancel}

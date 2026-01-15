@@ -37,3 +37,19 @@ export interface UploadedFile {
   type: string;
   previewUrl?: string;
 }
+
+// Types pour le traitement d'images
+export interface CropOptions {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+export type ImageFormat = 'JPEG' | 'PNG' | 'WEBP';
+
+export interface ProcessOptions {
+  crop: CropOptions;
+  format: ImageFormat;
+  removeWatermark?: boolean;
+}

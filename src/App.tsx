@@ -16,19 +16,7 @@ import { AppStatus, UploadedFile, User, PlanType, View } from './types';
 import { convertPdfToImages, healWatermark } from './utils/imageProcessor';
 import { useAuth } from './contexts/AuthContext';
 
-// Interface pour les options de traitement
-interface CropOptions {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
-
-interface ProcessOptions {
-  crop: CropOptions;
-  format: 'JPEG' | 'PNG' | 'WEBP';
-  removeWatermark?: boolean;
-}
+// Les interfaces CropOptions et ProcessOptions sont maintenant importées depuis types.ts
 
 // Utilitaire pour appliquer le rognage et convertir le format
 const processSlideWithCrop = async (originalSrc: string, options: ProcessOptions): Promise<string> => {

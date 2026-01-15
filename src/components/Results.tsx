@@ -8,6 +8,37 @@ interface ResultsProps {
   onReset: () => void;
 }
 
+/**
+ * Extrait l'extension de fichier depuis une DataURL en analysant le mime type
+ * @param dataUrl - La DataURL de l'image (ex: "data:image/png;base64,...")
+ * @returns L'extension de fichier correspondante (.jpg, .png, .webp)
+ */
+const getExtensionFromDataUrl = (dataUrl: string): string => {
+  // Extraire le mime type depuis la DataURL
+  // Format: "data:image/png;base64,..." ou "data:image/jpeg;base64,..."
+  const mimeMatch = dataUrl.match(/data:image\/([^;]+);/);
+  
+  if (!mimeMatch) {
+    // Par défaut, retourner .jpg si le mime type n'est pas trouvé
+    return '.jpg';
+  }
+  
+  const mimeType = mimeMatch[1].toLowerCase();
+  
+  // Mapper le mime type à l'extension
+  switch (mimeType) {
+    case 'jpeg':
+    case 'jpg':
+      return '.jpg';
+    case 'png':
+      return '.png';
+    case 'webp':
+      return '.webp';
+    default:
+      return '.jpg';
+  }
+};
+
 export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) => {
   const [isZipping, setIsZipping] = useState(false);
   const isSingle = slides.length === 1;
@@ -44,7 +75,10 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
         // Convertir le data URL en blob
         const response = await fetch(slides[0]);
         const blob = await response.blob();
-        saveAs(blob, `Slide_Cleaned.jpg`);
+        
+        // Détecter l'extension depuis la DataURL
+        const extension = getExtensionFromDataUrl(slides[0]);
+        saveAs(blob, `Slide_Cleaned${extension}`);
       } catch (error) {
         console.error("Erreur lors du téléchargement de l'image", error);
         alert("Une erreur est survenue lors du téléchargement.");
@@ -65,11 +99,15 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
       }
 
       slides.forEach((slideDataUrl, index) => {
-        // On retire l'en-tête "data:image/jpeg;base64," pour avoir le binaire pur
+        // On retire l'en-tête "data:image/xxx;base64," pour avoir le binaire pur
         const base64Data = slideDataUrl.split(',')[1];
+        
+        // Détecter l'extension depuis la DataURL pour chaque slide
+        const extension = getExtensionFromDataUrl(slideDataUrl);
+        
         if (folder) {
-          // On nomme les fichiers slide_1.jpg, slide_2.jpg, etc.
-          folder.file(`slide_${index + 1}.jpg`, base64Data, { base64: true });
+          // On nomme les fichiers avec la bonne extension (slide_1.jpg, slide_2.png, etc.)
+          folder.file(`slide_${index + 1}${extension}`, base64Data, { base64: true });
         }
       });
 
