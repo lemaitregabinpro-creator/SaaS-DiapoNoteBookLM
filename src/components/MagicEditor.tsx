@@ -17,8 +17,11 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
   const [cropLeft, setCropLeft] = useState(0);
   const [cropRight, setCropRight] = useState(0);
   
-  // État de format de sortie
-  const [outputFormat, setOutputFormat] = useState<ImageFormat>('JPEG');
+  // État de format de sortie - Récupère le format depuis localStorage ou utilise JPEG par défaut
+  const [outputFormat, setOutputFormat] = useState<ImageFormat>(() => {
+    const saved = localStorage.getItem('smartbooklm_default_format');
+    return (saved as ImageFormat) || 'JPEG';
+  });
   
   // État pour l'effaceur magique de filigrane
   const [isMagicRemovalEnabled, setIsMagicRemovalEnabled] = useState(false);
@@ -347,7 +350,11 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
             {(['JPEG', 'PNG', 'WEBP'] as ImageFormat[]).map((format) => (
               <button
                 key={format}
-                onClick={() => setOutputFormat(format)}
+                onClick={() => {
+                  setOutputFormat(format);
+                  // Sauvegarder dans localStorage pour synchroniser avec Account
+                  localStorage.setItem('smartbooklm_default_format', format);
+                }}
                 className={`flex-1 px-3 md:px-4 py-2.5 md:py-3 rounded-lg text-[10px] md:text-[10px] font-black uppercase tracking-widest transition-all min-h-[44px] ${
                   outputFormat === format
                     ? 'bg-gold text-anthracite shadow-lg shadow-gold/20 border border-gold'
