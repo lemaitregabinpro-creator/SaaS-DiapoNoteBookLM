@@ -1,247 +1,170 @@
-// utils/imageProcessor.ts
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configuration du worker pour Vite
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-}
-
-export interface CropOptions {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
-
-export type ImageFormat = 'JPEG' | 'PNG' | 'WEBP';
+// Configuration du worker PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 /**
- * Supprime le filigrane NotebookLM en bas à droite en reconstruisant le fond
- * Utilise un algorithme patch-based avec flou gaussien pour fondre les coutures
+ * Convertit un fichier PDF en tableau d'images (data URLs)
+ * @param pdfFile - Le fichier PDF à convertir
+ * @returns Promise<string[]> - Tableau de data URLs représentant chaque page du PDF
+ */
+export const convertPdfToImages = async (pdfFile: File): Promise<string[]> => {
+  try {
+    // 1. Lire le fichier PDF en tant qu'ArrayBuffer
+    const arrayBuffer = await pdfFile.arrayBuffer();
+    
+    // 2. Charger le document PDF
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    
+    const images: string[] = [];
+    const numPages = pdf.numPages;
+    
+    // 3. Parcourir chaque page du PDF
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      
+      // 4. Calculer le viewport avec une résolution appropriée (2x pour une meilleure qualité)
+      const viewport = page.getViewport({ scale: 2.0 });
+      
+      // 5. Créer un canvas pour rendre la page
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      
+      if (!context) {
+        throw new Error('Impossible de créer le contexte canvas');
+      }
+      
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      // 6. Rendre la page PDF sur le canvas
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+        canvas: canvas,
+      };
+      
+      await page.render(renderContext).promise;
+      
+      // 7. Convertir le canvas en data URL (format PNG pour préserver la qualité)
+      const dataUrl = canvas.toDataURL('image/png');
+      images.push(dataUrl);
+    }
+    
+    return images;
+  } catch (error) {
+    console.error('Erreur lors de la conversion PDF en images:', error);
+    throw new Error(`Échec de la conversion du PDF: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+  }
+};
+
+/**
+ * Algorithme "Smart Patch" : Reconstruit le fond intelligemment
+ * Scanne la colonne au-dessus du filigrane pour trouver le bloc qui s'aligne le mieux (continuité des motifs)
  */
 export const healWatermark = (
   ctx: CanvasRenderingContext2D,
   canvasWidth: number,
   canvasHeight: number
 ): void => {
-  // Constantes de zone du filigrane (bas-droite)
-  const WATERMARK_X = canvasWidth - 349; // Ajusté pour largeur 339px + marge de 10px
-  const WATERMARK_Y = canvasHeight - 110; // Ajusté pour hauteur 100px + marge de 10px
-  const WATERMARK_WIDTH = 339; // Largeur du texte (dimension horizontale)
-  const WATERMARK_HEIGHT = 100; // Hauteur du texte (dimension verticale)
-
-  // Vérifier que la zone est valide
-  if (WATERMARK_X < 0 || WATERMARK_Y < 0 || 
-      WATERMARK_X + WATERMARK_WIDTH > canvasWidth || 
-      WATERMARK_Y + WATERMARK_HEIGHT > canvasHeight) {
-    console.warn('Zone de filigrane hors limites, ajustement automatique');
-    return;
-  }
-
-  // Créer un canvas temporaire pour stocker la zone source (au-dessus du logo)
-  const sourceHeight = Math.min(WATERMARK_HEIGHT * 2, WATERMARK_Y); // Prendre jusqu'à 2x la hauteur du logo ou jusqu'au bord supérieur
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = WATERMARK_WIDTH;
-  tempCanvas.height = sourceHeight;
-  const tempCtx = tempCanvas.getContext('2d');
-
-  if (!tempCtx) {
-    console.error('Impossible de créer le contexte temporaire');
-    return;
-  }
-
-  // 1. Copier la zone source (au-dessus du filigrane) dans le canvas temporaire
-  tempCtx.drawImage(
-    ctx.canvas,
-    WATERMARK_X,                    // Source X
-    WATERMARK_Y - sourceHeight,     // Source Y (au-dessus du logo)
-    WATERMARK_WIDTH,                // Source Width
-    sourceHeight,                   // Source Height
-    0,                              // Dest X
-    0,                              // Dest Y
-    WATERMARK_WIDTH,                // Dest Width
-    sourceHeight                    // Dest Height
-  );
-
-  // 2. Copier cette bande sur la zone du filigrane (inpainting)
-  // On utilise plusieurs passes pour améliorer la qualité
-  for (let pass = 0; pass < 2; pass++) {
-    ctx.drawImage(
-      tempCanvas,
-      0,                            // Source X
-      sourceHeight - WATERMARK_HEIGHT, // Source Y (prendre la partie basse de la source)
-      WATERMARK_WIDTH,              // Source Width
-      WATERMARK_HEIGHT,              // Source Height
-      WATERMARK_X,                   // Dest X
-      WATERMARK_Y,                   // Dest Y
-      WATERMARK_WIDTH,               // Dest Width
-      WATERMARK_HEIGHT               // Dest Height
-    );
-  }
-
-  // 3. Appliquer un lissage sur les bords pour fondre les coutures
-  // Utiliser une approche simple avec plusieurs passes de copie
-  smoothWatermarkEdges(ctx, WATERMARK_X, WATERMARK_Y, WATERMARK_WIDTH, WATERMARK_HEIGHT);
-};
-
-/**
- * Lisse les bords de la zone traitée pour fondre les coutures
- * Utilise plusieurs passes de copie avec opacité réduite
- */
-const smoothWatermarkEdges = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number
-): void => {
-  const edgeSize = 3; // Taille de la zone de transition en pixels
-
-  // Créer un canvas temporaire pour la zone source (au-dessus)
-  const sourceCanvas = document.createElement('canvas');
-  sourceCanvas.width = width;
-  sourceCanvas.height = height + edgeSize;
-  const sourceCtx = sourceCanvas.getContext('2d');
-
-  if (!sourceCtx) return;
-
-  // Copier la zone source (au-dessus du filigrane)
-  sourceCtx.drawImage(
-    ctx.canvas,
-    x,
-    Math.max(0, y - height - edgeSize),
-    width,
-    height + edgeSize,
-    0,
-    0,
-    width,
-    height + edgeSize
-  );
-
-  // Appliquer plusieurs passes avec opacité réduite pour fondre les bords
-  ctx.save();
-  ctx.globalAlpha = 0.6;
+  // 1. Définition de la zone précise du logo NoteBookLM (bas-droite)
+  // On élargit légèrement pour être sûr de tout couvrir
+  const WATERMARK_WIDTH = 360; 
+  const WATERMARK_HEIGHT = 120;
   
-  // Passer 1 : copie de la partie basse de la source
-  ctx.drawImage(
-    sourceCanvas,
-    0,
-    edgeSize,
-    width,
-    height,
-    x,
-    y,
-    width,
-    height
-  );
+  const targetX = canvasWidth - WATERMARK_WIDTH;
+  const targetY = canvasHeight - WATERMARK_HEIGHT;
 
-  ctx.globalAlpha = 0.4;
-  
-  // Passer 2 : copie supplémentaire pour améliorer le lissage
-  ctx.drawImage(
-    sourceCanvas,
-    0,
-    edgeSize,
-    width,
-    height,
-    x,
-    y,
-    width,
-    height
-  );
+  // Sécurité
+  if (targetX < 0 || targetY < 0) return;
 
-  ctx.restore();
-};
+  try {
+    // 2. Récupérer la "Ligne de Référence" (C'est la frontière juste au-dessus du logo)
+    // C'est notre guide : on cherche un morceau d'image qui se termine par des pixels similaires à ceux-ci.
+    const borderY = targetY - 1;
+    const borderData = ctx.getImageData(targetX, borderY, WATERMARK_WIDTH, 1).data;
 
-// Fonction pour convertir un PDF en images
-export const convertPdfToImages = async (file: File): Promise<string[]> => {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const images: string[] = [];
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 3.0 }); // Scale 3.0 pour une bonne qualité (HD)
+    // 3. Scanner vers le haut pour trouver le "Meilleur Candidat"
+    // On cherche un bloc de hauteur WATERMARK_HEIGHT situé plus haut dans l'image
+    // dont le bas ressemble le plus possible à notre bordure.
     
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
+    let bestScore = Infinity;
+    let bestY = targetY - WATERMARK_HEIGHT - 5; // On commence à chercher au-dessus de la zone cible
 
-    if (context) {
-      await page.render({ canvasContext: context, viewport: viewport, canvas: canvas }).promise;
-      images.push(canvas.toDataURL('image/jpeg', 0.8));
+    // On limite la recherche pour la performance (on remonte jusqu'à 2x la hauteur ou le haut de l'image)
+    const searchLimit = Math.max(0, targetY - (WATERMARK_HEIGHT * 4));
+
+    // Pas de scan (tous les 2 pixels pour aller plus vite sans perdre trop de qualité)
+    for (let y = bestY; y >= searchLimit; y -= 2) {
+      // On regarde la ligne qui serait en contact avec notre bordure si on copiait ce bloc
+      // C'est la ligne du bas du bloc candidat
+      const candidateBottomY = y + WATERMARK_HEIGHT - 1;
+      const candidateData = ctx.getImageData(targetX, candidateBottomY, WATERMARK_WIDTH, 1).data;
+
+      // Calcul de la différence (Score de similarité)
+      let score = 0;
+      // On compare 1 pixel sur 4 pour la performance (suffisant pour l'œil)
+      for (let i = 0; i < candidateData.length; i += 16) { 
+        const rDiff = candidateData[i] - borderData[i];
+        const gDiff = candidateData[i+1] - borderData[i+1];
+        const bDiff = candidateData[i+2] - borderData[i+2];
+        score += Math.abs(rDiff) + Math.abs(gDiff) + Math.abs(bDiff);
+        
+        // Optimisation : si le score est déjà mauvais, on arrête de tester cette ligne
+        if (score > bestScore) break;
+      }
+
+      if (score < bestScore) {
+        bestScore = score;
+        bestY = y;
+      }
     }
+
+    // 4. Appliquer le "Meilleur Patch" trouvé
+    // On copie le bloc gagnant dans la zone du filigrane
+    ctx.drawImage(
+      ctx.canvas,
+      targetX,      // Source X (même colonne)
+      bestY,        // Source Y (le meilleur Y trouvé)
+      WATERMARK_WIDTH, 
+      WATERMARK_HEIGHT,
+      targetX,      // Dest X
+      targetY,      // Dest Y
+      WATERMARK_WIDTH,
+      WATERMARK_HEIGHT
+    );
+
+    // 5. Fusion Ultime (Seam Blending)
+    // Même avec le meilleur patch, il peut y avoir une légère coupure.
+    // On applique un flou dégradé uniquement sur la jonction (top) pour la rendre invisible.
+    
+    const blendHeight = 20; // Hauteur de la zone de fusion
+    
+    // Créer un dégradé de transparence pour masquer la coupure
+    const gradient = ctx.createLinearGradient(0, targetY, 0, targetY + blendHeight);
+    gradient.addColorStop(0, "rgba(255, 255, 255, 1)"); // Masque total au début (invisible car mode destination-out ?)
+    // Non, on va utiliser une méthode plus simple : le flou localisé.
+    
+    // On prend la zone de jonction
+    const jointData = ctx.getImageData(targetX, targetY - 2, WATERMARK_WIDTH, 5);
+    // On pourrait flouter, mais le plus simple en canvas est de redessiner la ligne de jonction avec une légère transparence
+    
+    ctx.save();
+    ctx.globalAlpha = 0.5; // Semi-transparent
+    // On redessine la ligne de frontière par dessus pour mélanger
+    ctx.drawImage(
+        ctx.canvas,
+        targetX, bestY + WATERMARK_HEIGHT - 2, WATERMARK_WIDTH, 4, // Source (jonction source)
+        targetX, targetY - 2, WATERMARK_WIDTH, 4 // Dest (jonction dest)
+    );
+    ctx.restore();
+
+  } catch (e) {
+    console.error("Erreur smart inpainting:", e);
+    // Fallback : on fait le stretch si l'inpainting échoue (ex: image trop petite)
+    try {
+        ctx.drawImage(ctx.canvas, targetX - 1, targetY, 1, WATERMARK_HEIGHT, targetX, targetY, WATERMARK_WIDTH, WATERMARK_HEIGHT);
+    } catch(e2) {}
   }
-
-  return images;
-};
-
-export const processSlide4Sides = async (
-  imageSrc: string, 
-  crop: CropOptions, 
-  format: ImageFormat
-): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous"; // Important pour éviter les erreurs de sécurité
-    img.src = imageSrc;
-
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        reject(new Error("Impossible de créer le contexte canvas"));
-        return;
-      }
-
-      // 1. Calculer les nouvelles dimensions
-      // On s'assure de ne pas avoir de dimensions négatives
-      const newWidth = Math.max(1, img.width - crop.left - crop.right);
-      const newHeight = Math.max(1, img.height - crop.top - crop.bottom);
-
-      // 2. Définir la taille du canvas final
-      canvas.width = newWidth;
-      canvas.height = newHeight;
-
-      // 3. Dessiner uniquement la partie gardée
-      // drawImage(source, sourceX, sourceY, sourceW, sourceH, destX, destY, destW, destH)
-      ctx.drawImage(
-        img, 
-        crop.left,  // On commence à X pixels de la gauche
-        crop.top,   // On commence à Y pixels du haut
-        newWidth,   // On prend cette largeur dans l'image source
-        newHeight,  // On prend cette hauteur dans l'image source
-        0,          // On dessine à 0 sur le canvas
-        0,          // On dessine à 0 sur le canvas
-        newWidth,   // Largeur finale
-        newHeight   // Hauteur finale
-      );
-
-      // 4. Conversion au format choisi
-      let mimeType = 'image/jpeg';
-      let quality = 0.92; // Qualité standard excellente
-
-      switch (format) {
-        case 'PNG':
-          mimeType = 'image/png';
-          quality = 1.0; // PNG est lossless, quality est ignoré mais bon pour la forme
-          break;
-        case 'WEBP':
-          mimeType = 'image/webp';
-          quality = 0.85; // WEBP compresse mieux, on peut baisser un peu
-          break;
-        case 'JPEG':
-        default:
-          mimeType = 'image/jpeg';
-          break;
-      }
-
-      const finalDataUrl = canvas.toDataURL(mimeType, quality);
-      resolve(finalDataUrl);
-    };
-
-    img.onerror = (err) => reject(err);
-  });
 };

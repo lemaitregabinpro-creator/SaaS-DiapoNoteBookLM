@@ -11,8 +11,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ user, currentView, onNavigate, onAuthClick }) => {
   const navItems = [
-    { label: 'Outil', view: View.HOME },
-    { label: 'Tarifs', view: View.PRICING },
+    { label: 'L\'Outil', view: View.HOME },
+    { label: 'Mon Studio', view: View.PRICING },
     { label: 'Mission', view: View.MISSION },
     { label: 'Roadmap', view: View.FEED },
   ];

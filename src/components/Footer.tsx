@@ -24,8 +24,12 @@ export const Footer: React.FC = () => {
           <div className="space-y-6">
             <h4 className="text-white font-black uppercase tracking-widest text-xs">Écosystème SmartUnity</h4>
             <ul className="space-y-4">
-              {/* Remplace les # par tes vrais liens plus tard */}
-              <li><a href="https://smartunityia.fr" className="text-slate-400 hover:text-gold transition-colors text-sm font-medium flex items-center"><span className="w-1.5 h-1.5 bg-gold/50 rounded-full mr-3"></span>SmartUnityIA "Local"</a></li>
+              <li>
+                <a href="https://smartunityia.fr" className="text-slate-400 hover:text-gold transition-colors text-sm font-medium flex items-center">
+                  <span className="w-1.5 h-1.5 bg-gold/50 rounded-full mr-3"></span>
+                  Ingénierie & Consulting IA
+                </a>
+              </li>
             </ul>
           </div>
 
