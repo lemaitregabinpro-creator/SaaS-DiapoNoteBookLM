@@ -42,7 +42,6 @@ export const Header: React.FC<HeaderProps> = ({ user, currentView, onNavigate, o
               className="w-full h-full object-contain"
             />
           </div>
-          <span className="text-xl md:text-2xl font-black text-white tracking-tighter">SmartBook<span className="text-gold">LM</span></span>
           <span className="px-2 py-0.5 bg-gold/20 border border-gold/30 rounded-md text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gold">
             BETA
           </span>
