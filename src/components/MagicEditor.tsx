@@ -355,7 +355,7 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
                   // Sauvegarder dans localStorage pour synchroniser avec Account
                   localStorage.setItem('smartbooklm_default_format', format);
                 }}
-                className={`flex-1 px-3 md:px-4 py-2.5 md:py-3 rounded-lg text-[10px] md:text-[10px] font-black uppercase tracking-widest transition-all min-h-[44px] ${
+                className={`flex items-center justify-center flex-1 px-3 md:px-4 py-2.5 md:py-3 rounded-lg text-[10px] md:text-[10px] font-black uppercase tracking-widest transition-all min-h-[44px] text-center ${
                   outputFormat === format
                     ? 'bg-gold text-anthracite shadow-lg shadow-gold/20 border border-gold'
                     : 'bg-anthracite text-slate-400 border border-anthracite-lighter hover:border-gold/50 hover:text-white'

@@ -211,7 +211,7 @@ export const Account: React.FC<AccountProps> = ({ user, onLogout }) => {
                           <button
                             key={format}
                             onClick={() => setDefaultFormat(format)}
-                            className={`px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-h-[44px] ${
+                            className={`flex items-center justify-center px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 min-h-[44px] text-center ${
                               defaultFormat === format
                                 ? 'bg-gold text-anthracite border border-gold shadow-lg shadow-gold/20'
                                 : 'bg-anthracite-light border border-anthracite-lighter text-white hover:border-gold hover:bg-gold/10'
