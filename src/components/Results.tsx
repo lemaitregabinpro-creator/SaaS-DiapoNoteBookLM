@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
+import { handleSmartExport, handleSmartExportZip } from '../utils/smartExport';
 
 interface ResultsProps {
   fileName: string;
@@ -330,7 +330,7 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
 
   const handleDownload = async () => {
     if (isSingle) {
-      // Téléchargement direct d'une image unique
+      // Export intelligent d'une image unique (partage sur mobile, téléchargement sur desktop)
       try {
         // Convertir le data URL en blob
         const response = await fetch(slides[0]);
@@ -338,13 +338,16 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
         
         // Détecter l'extension depuis la DataURL
         const extension = getExtensionFromDataUrl(slides[0]);
-        saveAs(blob, `Slide_Cleaned${extension}`);
+        const filename = `Slide_Cleaned${extension}`;
+        
+        // Utiliser l'export intelligent (partage sur mobile, téléchargement sur desktop)
+        await handleSmartExport(blob, filename);
       } catch (error) {
-        console.error("Erreur lors du téléchargement de l'image", error);
-        alert("Une erreur est survenue lors du téléchargement.");
+        console.error("Erreur lors de l'export de l'image", error);
+        alert("Une erreur est survenue lors de l'export.");
       }
     } else {
-      // Téléchargement ZIP pour plusieurs slides
+      // Export intelligent ZIP pour plusieurs slides
       setIsZipping(true);
       const zip = new JSZip();
       
@@ -372,9 +375,12 @@ export const Results: React.FC<ResultsProps> = ({ fileName, slides, onReset }) =
       });
 
       try {
-        // Génération et téléchargement
+        // Génération du ZIP
         const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, `${fileName.replace(/\.[^/.]+$/, "")}_SmartClean.zip`);
+        const filename = `${fileName.replace(/\.[^/.]+$/, "")}_SmartClean.zip`;
+        
+        // Utiliser l'export intelligent (partage sur mobile, téléchargement sur desktop)
+        await handleSmartExportZip(content, filename);
       } catch (error) {
         console.error("Erreur lors de la création du zip", error);
         alert("Une erreur est survenue lors de la création de l'archive.");
