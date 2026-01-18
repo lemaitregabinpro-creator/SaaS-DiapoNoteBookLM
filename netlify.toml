@@ -1,0 +1,11 @@
+# Configuration de base pour Netlify
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Règle de redirection pour les SPA (Vue/React)
+# Redirige tout le trafic vers index.html pour laisser le routeur JS gérer l'affichage
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

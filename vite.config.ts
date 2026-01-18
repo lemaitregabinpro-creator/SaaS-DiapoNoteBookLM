@@ -20,6 +20,11 @@ export default defineConfig(({ mode }) => {
         }
       },
       root: '.',
-      publicDir: 'public'
+      publicDir: 'public',
+      build: {
+        outDir: 'dist', // Doit correspondre au "publish" du netlify.toml
+        assetsDir: 'assets',
+        sourcemap: false
+      }
     };
 });

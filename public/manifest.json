@@ -1,0 +1,33 @@
+{
+  "name": "SmartBookLM - Nettoyez vos slides NotebookLM",
+  "short_name": "SmartBookLM",
+  "description": "Outil gratuit et illimité pour nettoyer et retirer les filigranes de vos slides NotebookLM",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121417",
+  "theme_color": "#C5A059",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "fr",
+  "dir": "ltr"
+}
