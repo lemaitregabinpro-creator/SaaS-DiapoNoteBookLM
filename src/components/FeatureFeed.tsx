@@ -153,9 +153,6 @@ export const FeatureFeed: React.FC<FeatureFeedProps> = ({ user, onAuthClick }) =
 
   return (
     <section id="roadmap" className="py-8 md:py-12 relative overflow-hidden">
-      {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gold/5 rounded-full blur-[120px] pointer-events-none"></div>
-
       <div className="container mx-auto px-4 max-w-5xl relative z-10">
         {/* Header */}
         <div className="text-center mb-12 relative z-10">

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { User, View } from '../types';
 
 interface HeaderProps {
@@ -10,10 +10,11 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ user, currentView, onNavigate, onAuthClick }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const navItems = [
     { label: 'L\'Outil', view: View.HOME },
     { label: 'Mon Studio', view: View.PRICING },
-    { label: 'Mission', view: View.MISSION },
     { label: 'Roadmap', view: View.FEED },
   ];
 
@@ -21,27 +22,39 @@ export const Header: React.FC<HeaderProps> = ({ user, currentView, onNavigate, o
     navItems.push({ label: 'Compte', view: View.ACCOUNT });
   }
 
+  const handleNavigate = (view: View) => {
+    onNavigate(view);
+    setIsMenuOpen(false);
+  };
+
   return (
     <nav className="bg-anthracite/90 backdrop-blur-xl sticky top-0 z-50 border-b border-anthracite-lighter">
-      <div className="container mx-auto px-6 py-4 md:py-0 md:h-24 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="container mx-auto px-4 md:px-6 py-3 md:py-0 md:h-24 flex items-center justify-between">
+        {/* Logo - Toujours visible */}
         <div 
-          className="flex items-center space-x-3 cursor-pointer group" 
-          onClick={() => onNavigate(View.HOME)}
+          className="flex items-center space-x-2 md:space-x-3 cursor-pointer group" 
+          onClick={() => handleNavigate(View.HOME)}
         >
-          <div className="w-11 h-11 bg-gold rounded-2xl flex items-center justify-center shadow-2xl shadow-gold/20 group-hover:scale-105 group-hover:rotate-3 transition-all duration-500">
-            <svg className="w-6 h-6 text-anthracite" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
+          <div className="w-9 h-9 md:w-11 md:h-11 flex items-center justify-center group-hover:scale-105 group-hover:rotate-3 transition-all duration-500">
+            <img 
+              src="/icon128.png" 
+              alt="SmartBookLM Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
-          <span className="text-2xl font-black text-white tracking-tighter">SmartBook<span className="text-gold">LM</span></span>
+          <span className="text-xl md:text-2xl font-black text-white tracking-tighter">SmartBook<span className="text-gold">LM</span></span>
+          <span className="px-2 py-0.5 bg-gold/20 border border-gold/30 rounded-md text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gold">
+            BETA
+          </span>
         </div>
         
-        <div className="flex items-center space-x-2 md:space-x-8">
+        {/* Desktop Navigation - Cachée sur mobile */}
+        <div className="hidden md:flex items-center space-x-8">
           {navItems.map((item) => (
             <button 
               key={item.view}
-              onClick={() => onNavigate(item.view)} 
-              className={`text-[13px] font-bold uppercase tracking-[0.1em] transition-all py-2 relative group ${currentView === item.view ? 'text-gold' : 'text-slate-400 hover:text-gold'}`}
+              onClick={() => handleNavigate(item.view)} 
+              className={`text-[13px] font-bold uppercase tracking-[0.1em] transition-all py-2 relative group min-h-[44px] flex items-center ${currentView === item.view ? 'text-gold' : 'text-slate-400 hover:text-gold'}`}
             >
               {item.label}
               {currentView === item.view && (
@@ -50,12 +63,12 @@ export const Header: React.FC<HeaderProps> = ({ user, currentView, onNavigate, o
             </button>
           ))}
           
-          <div className="w-px h-6 bg-anthracite-lighter mx-2 hidden md:block"></div>
+          <div className="w-px h-6 bg-anthracite-lighter mx-2"></div>
           
           {user ? (
             <div 
-              onClick={() => onNavigate(View.ACCOUNT)}
-              className={`flex items-center space-x-3 p-1.5 pr-4 rounded-xl border transition-all cursor-pointer ${currentView === View.ACCOUNT ? 'bg-gold/10 border-gold/30' : 'bg-anthracite-lighter border-anthracite-lighter hover:border-gold/20'}`}
+              onClick={() => handleNavigate(View.ACCOUNT)}
+              className={`flex items-center space-x-3 p-1.5 pr-4 rounded-xl border transition-all cursor-pointer min-h-[44px] ${currentView === View.ACCOUNT ? 'bg-gold/10 border-gold/30' : 'bg-anthracite-lighter border-anthracite-lighter hover:border-gold/20'}`}
             >
               <img 
                 src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
@@ -67,11 +80,68 @@ export const Header: React.FC<HeaderProps> = ({ user, currentView, onNavigate, o
           ) : (
             <button 
               onClick={onAuthClick}
-              className="bg-gold text-anthracite px-6 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest hover:bg-gold-light hover:shadow-lg hover:shadow-gold/10 transition-all active:scale-95"
+              className="bg-gold text-anthracite px-6 py-3 rounded-xl text-[13px] font-black uppercase tracking-widest hover:bg-gold-light hover:shadow-lg hover:shadow-gold/10 transition-all active:scale-95 min-h-[44px]"
             >
               Connexion
             </button>
           )}
+        </div>
+
+        {/* Mobile: Bouton Auth/Avatar + Menu Hamburger */}
+        <div className="flex md:hidden items-center space-x-3 relative">
+          {user ? (
+            <div 
+              onClick={() => handleNavigate(View.ACCOUNT)}
+              className={`flex items-center space-x-2 p-2 rounded-lg border transition-all cursor-pointer min-h-[44px] min-w-[44px] justify-center ${currentView === View.ACCOUNT ? 'bg-gold/10 border-gold/30' : 'bg-anthracite-lighter border-anthracite-lighter'}`}
+            >
+              <img 
+                src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
+                alt="Avatar" 
+                className="w-8 h-8 rounded-lg bg-anthracite shadow-inner"
+              />
+            </div>
+          ) : (
+            <button 
+              onClick={onAuthClick}
+              className="bg-gold text-anthracite px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-gold-light transition-all active:scale-95 min-h-[44px]"
+            >
+              Connexion
+            </button>
+          )}
+
+          {/* Menu Hamburger */}
+          <div className="relative">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="w-11 h-11 flex flex-col items-center justify-center space-y-1.5 rounded-lg bg-anthracite-lighter border border-anthracite-lighter hover:border-gold/20 transition-all min-h-[44px] min-w-[44px]"
+              aria-label="Menu"
+            >
+              <span className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+              <span className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'opacity-0' : ''}`}></span>
+              <span className={`w-5 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+            </button>
+
+            {/* Dropdown Menu - Petit menu sous le bouton */}
+            {isMenuOpen && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-anthracite-light border border-anthracite-lighter rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="py-2">
+                  {navItems.map((item) => (
+                    <button 
+                      key={item.view}
+                      onClick={() => handleNavigate(item.view)} 
+                      className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-all min-h-[44px] flex items-center ${
+                        currentView === item.view 
+                          ? 'bg-gold/10 text-gold' 
+                          : 'text-slate-400 hover:text-white hover:bg-anthracite'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>

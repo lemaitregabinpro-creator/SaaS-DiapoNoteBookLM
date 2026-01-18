@@ -118,34 +118,36 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
   const overlayRight = (cropRight / imageDimensions.displayWidth) * 100;
 
   return (
-    <div className="bg-anthracite-light rounded-[2.5rem] border border-anthracite-lighter overflow-hidden shadow-2xl flex flex-col h-full">
+    <div className="bg-anthracite-light rounded-2xl md:rounded-[2.5rem] border border-anthracite-lighter overflow-hidden shadow-2xl flex flex-col h-full">
       {/* Header */}
-      <div className="px-8 py-6 border-b border-anthracite-lighter flex justify-between items-center bg-anthracite/50 backdrop-blur-md">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
-            <span className="font-black text-gold text-lg">{currentIndex + 1}</span>
+      <div className="px-4 md:px-8 py-4 md:py-6 border-b border-anthracite-lighter flex justify-between items-center bg-anthracite/50 backdrop-blur-md">
+        <div className="flex items-center space-x-2 md:space-x-4 flex-1 min-w-0">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20 flex-shrink-0">
+            <span className="font-black text-gold text-sm md:text-lg">{currentIndex + 1}</span>
           </div>
-          <div>
-            <h3 className="font-black text-white text-lg tracking-tight">Éditeur Crop & Convert</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+          <div className="min-w-0">
+            <h3 className="font-black text-white text-sm md:text-lg tracking-tight truncate">Éditeur Crop & Convert</h3>
+            <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest">
               Slide {currentIndex + 1} sur {slides.length}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 bg-anthracite rounded-xl p-1 border border-anthracite-lighter">
+        <div className="flex items-center space-x-1 md:space-x-2 bg-anthracite rounded-lg md:rounded-xl p-1 border border-anthracite-lighter flex-shrink-0">
           <button 
             onClick={handlePrev} 
             disabled={currentIndex === 0} 
-            className="p-3 hover:bg-anthracite-light rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+            className="p-2 md:p-3 hover:bg-anthracite-light rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Slide précédente"
           >
             ←
           </button>
-          <div className="w-px h-6 bg-anthracite-lighter"></div>
+          <div className="w-px h-4 md:h-6 bg-anthracite-lighter"></div>
           <button 
             onClick={handleNext} 
             disabled={currentIndex === slides.length - 1} 
-            className="p-3 hover:bg-anthracite-light rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white"
+            className="p-2 md:p-3 hover:bg-anthracite-light rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Slide suivante"
           >
             →
           </button>
@@ -153,14 +155,14 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
       </div>
       
       {/* Zone d'image avec overlays de rognage */}
-      <div className="relative flex-grow bg-anthracite overflow-hidden flex items-center justify-center p-8">
-        <div className="relative shadow-2xl border border-anthracite-lighter inline-block">
+      <div className="relative flex-grow bg-anthracite overflow-hidden flex items-center justify-center p-4 md:p-8">
+        <div className="relative shadow-2xl border border-anthracite-lighter inline-block w-full max-w-full">
           {/* L'image principale */}
           <img 
             ref={imageRef}
             src={slides[currentIndex]} 
             alt="Slide" 
-            className="max-h-[55vh] pointer-events-none select-none"
+            className="max-h-[40vh] md:max-h-[55vh] w-auto pointer-events-none select-none mx-auto"
             onLoad={(e) => {
               const img = e.currentTarget;
               setImageDimensions({
@@ -222,31 +224,62 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
       </div>
 
       {/* Footer avec contrôles de rognage et format */}
-      <div className="px-8 py-6 bg-anthracite/30 border-t border-anthracite-lighter space-y-6">
-        {/* Section Intelligence Artificielle */}
-        <div className="bg-anthracite-light border border-gold/30 rounded-xl p-4 space-y-3">
-          <div className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              id="magicRemoval"
-              checked={isMagicRemovalEnabled}
-              onChange={(e) => setIsMagicRemovalEnabled(e.target.checked)}
-              className="w-4 h-4 accent-gold rounded cursor-pointer"
-            />
-            <label htmlFor="magicRemoval" className="text-white text-sm font-bold cursor-pointer">
-              ✨ Effaceur Magique NotebookLM
-            </label>
+      <div className="px-4 md:px-8 py-4 md:py-6 bg-anthracite/30 border-t border-anthracite-lighter space-y-4 md:space-y-6 overflow-y-auto">
+        {/* Section Intelligence Artificielle - Version Magique */}
+        <div 
+          className={`border rounded-lg md:rounded-xl p-3 md:p-4 space-y-2 md:space-y-3 transition-all duration-500 ${
+            isMagicRemovalEnabled 
+              ? 'magic-active-border border-gold/60' 
+              : 'bg-anthracite-light border-gold/30 hover:border-gold/50'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
+              <div className="relative flex items-center justify-center flex-shrink-0">
+                <input
+                  type="checkbox"
+                  id="magicRemoval"
+                  checked={isMagicRemovalEnabled}
+                  onChange={(e) => setIsMagicRemovalEnabled(e.target.checked)}
+                  className="peer w-5 h-5 md:w-5 md:h-5 appearance-none border-2 border-slate-500 rounded bg-anthracite checked:bg-gold checked:border-gold transition-all cursor-pointer z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                />
+                {/* Checkmark SVG custom pour être sûr qu'il est visible */}
+                <svg className="absolute w-3 h-3 text-anthracite pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              
+              <label 
+                htmlFor="magicRemoval" 
+                className={`text-xs md:text-sm font-black cursor-pointer transition-all flex-1 min-w-0 ${
+                  isMagicRemovalEnabled ? 'magic-text text-sm md:text-lg' : 'text-white'
+                }`}
+              >
+                {isMagicRemovalEnabled ? '✨ EFFACEUR MAGIQUE ACTIVÉ ✨' : '✨ Effaceur Magique NotebookLM'}
+              </label>
+            </div>
+            
+            {/* Petit indicateur visuel supplémentaire */}
+            {isMagicRemovalEnabled && (
+               <span className="flex h-3 w-3 relative flex-shrink-0">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-3 w-3 bg-gold"></span>
+               </span>
+            )}
           </div>
-          <p className="text-slate-400 text-xs ml-7">
-            Reconstruit le fond derrière le logo automatiquement.
+          
+          <p className={`text-[10px] md:text-xs ml-7 md:ml-8 transition-colors ${isMagicRemovalEnabled ? 'text-gold/80' : 'text-slate-400'}`}>
+            {isMagicRemovalEnabled 
+              ? "L'IA va reconstruire le fond pixel par pixel pour un résultat invisible."
+              : "Reconstruit le fond derrière le logo automatiquement."}
           </p>
         </div>
 
         {/* Contrôles de rognage */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {/* Crop Top */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+          <div className="space-y-1.5 md:space-y-2">
+            <label className="text-[10px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest block">
               Haut: {convertToRealPixels(cropTop)}px
             </label>
             <input 
@@ -255,13 +288,13 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
               max={imageDimensions.displayHeight || 1000} 
               value={cropTop} 
               onChange={(e) => setCropTop(Number(e.target.value))}
-              className="w-full accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-gold h-2 md:h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
             />
           </div>
           
           {/* Crop Bottom */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+          <div className="space-y-1.5 md:space-y-2">
+            <label className="text-[10px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest block">
               Bas: {convertToRealPixels(cropBottom)}px
             </label>
             <input 
@@ -270,13 +303,13 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
               max={imageDimensions.displayHeight || 1000} 
               value={cropBottom} 
               onChange={(e) => setCropBottom(Number(e.target.value))}
-              className="w-full accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-gold h-2 md:h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
             />
           </div>
           
           {/* Crop Left */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+          <div className="space-y-1.5 md:space-y-2">
+            <label className="text-[10px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest block">
               Gauche: {convertToRealPixels(cropLeft)}px
             </label>
             <input 
@@ -285,13 +318,13 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
               max={imageDimensions.displayWidth || 1000} 
               value={cropLeft} 
               onChange={(e) => setCropLeft(Number(e.target.value))}
-              className="w-full accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-gold h-2 md:h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
             />
           </div>
           
           {/* Crop Right */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+          <div className="space-y-1.5 md:space-y-2">
+            <label className="text-[10px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest block">
               Droite: {convertToRealPixels(cropRight)}px
             </label>
             <input 
@@ -300,22 +333,22 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
               max={imageDimensions.displayWidth || 1000} 
               value={cropRight} 
               onChange={(e) => setCropRight(Number(e.target.value))}
-              className="w-full accent-gold h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-gold h-2 md:h-1 bg-anthracite-lighter rounded-lg appearance-none cursor-pointer"
             />
           </div>
         </div>
 
         {/* Section Format de sortie */}
-        <div className="bg-anthracite-light border border-gold/30 rounded-xl p-4 space-y-3">
-          <label className="text-[9px] font-black text-gold uppercase tracking-widest block">
+        <div className="bg-anthracite-light border border-gold/30 rounded-lg md:rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
+          <label className="text-[10px] md:text-[9px] font-black text-gold uppercase tracking-widest block">
             Format de sortie
           </label>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             {(['JPEG', 'PNG', 'WEBP'] as ImageFormat[]).map((format) => (
               <button
                 key={format}
                 onClick={() => setOutputFormat(format)}
-                className={`flex-1 px-4 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`flex-1 px-3 md:px-4 py-2.5 md:py-3 rounded-lg text-[10px] md:text-[10px] font-black uppercase tracking-widest transition-all min-h-[44px] ${
                   outputFormat === format
                     ? 'bg-gold text-anthracite shadow-lg shadow-gold/20 border border-gold'
                     : 'bg-anthracite text-slate-400 border border-anthracite-lighter hover:border-gold/50 hover:text-white'
@@ -327,7 +360,7 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
               </button>
             ))}
           </div>
-          <div className="text-[9px] text-slate-500 font-medium space-y-1">
+          <div className="text-[9px] md:text-[9px] text-slate-500 font-medium space-y-1">
             {outputFormat === 'JPEG' && (
               <p>Standard, léger • Idéal pour le partage</p>
             )}
@@ -342,22 +375,22 @@ export const MagicEditor: React.FC<MagicEditorProps> = ({ slides, onApplySingle,
 
         {/* Boutons d'action */}
         <div className="flex justify-end items-center">
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2 sm:gap-3 sm:space-x-0">
             <button 
               onClick={onCancel}
-              className="px-6 py-3 rounded-xl text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl text-slate-500 hover:text-white text-[10px] md:text-[10px] font-black uppercase tracking-widest transition-all min-h-[44px]"
             >
               Annuler
             </button>
             <button 
               onClick={handleSingleExport}
-              className="px-6 py-3 rounded-xl border border-gold/20 text-gold hover:bg-gold/10 text-[10px] font-black uppercase tracking-widest transition-all"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl border border-gold/20 text-gold hover:bg-gold/10 text-[10px] md:text-[10px] font-black uppercase tracking-widest transition-all min-h-[44px]"
             >
               Traiter cette slide
             </button>
             <button 
               onClick={handleAllExport}
-              className="px-8 py-3 rounded-xl bg-gold text-anthracite hover:bg-gold-light shadow-lg shadow-gold/10 text-[10px] font-black uppercase tracking-widest transition-all"
+              className="w-full sm:w-auto px-6 md:px-8 py-3 rounded-xl bg-gold text-anthracite hover:bg-gold-light shadow-lg shadow-gold/10 text-[10px] md:text-[10px] font-black uppercase tracking-widest transition-all min-h-[44px]"
             >
               Tout Traiter (ZIP)
             </button>

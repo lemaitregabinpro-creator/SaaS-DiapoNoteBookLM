@@ -23,3 +23,44 @@
 .animate-spin-reverse-slow {
   animation: spin-reverse-slow 80s linear infinite;
 }
+
+/* --- Effets Magiques --- */
+
+/* Texte qui brille (Or qui coule) */
+@keyframes text-shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+.magic-text {
+  background: linear-gradient(
+    90deg, 
+    #FFFFFF 0%, 
+    #FFFFFF 40%, 
+    #FFD700 50%, 
+    #FFFFFF 60%, 
+    #FFFFFF 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: text-shimmer 3s linear infinite;
+}
+
+/* Bordure pulsante dorée */
+@keyframes border-pulse-gold {
+  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.1); border-color: rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 15px 0 rgba(255, 215, 0, 0.2); border-color: rgba(255, 215, 0, 0.8); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.1); border-color: rgba(255, 215, 0, 0.3); }
+}
+
+.magic-active-border {
+  animation: border-pulse-gold 2s ease-in-out infinite;
+  background: rgba(255, 215, 0, 0.05); /* Fond subtil doré */
+}
+
+/* Particules d'étoiles (Optionnel pour déco) */
+.sparkle-icon {
+  filter: drop-shadow(0 0 2px #FFD700);
+}

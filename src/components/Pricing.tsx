@@ -3,9 +3,6 @@ import React from 'react';
 export const Pricing: React.FC = () => {
   return (
     <section id="ecosystem" className="py-12 md:py-24 relative overflow-hidden">
-      {/* Fond atmosphérique */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gold/5 rounded-full blur-[120px] pointer-events-none"></div>
-
       <div className="text-center mb-16 relative z-10 px-4">
         <div className="inline-flex items-center space-x-2 bg-gold/10 border border-gold/20 rounded-full px-4 py-1.5 mb-6">
           <span className="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
@@ -29,9 +26,9 @@ export const Pricing: React.FC = () => {
           {/* Effet de brillance au survol */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"></div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="max-w-2xl mx-auto">
             
-            {/* Colonne Gauche : Le Pitch */}
+            {/* Contenu : Le Pitch */}
             <div className="space-y-8">
               <div>
                 <h3 className="text-gold font-black uppercase tracking-widest text-sm mb-2">SmartUnityIA • Studio d'Ingénierie</h3>
@@ -77,31 +74,6 @@ export const Pricing: React.FC = () => {
                   Pour les pros & entreprises
                 </span>
               </div>
-            </div>
-
-            {/* Colonne Droite : Visuel "Tech" abstrait */}
-            <div className="relative h-full min-h-[300px] bg-slate-900 rounded-2xl border border-slate-800 p-6 overflow-hidden flex flex-col justify-center">
-              
-              {/* Terminal simulé */}
-              <div className="font-mono text-[10px] md:text-xs text-slate-400 space-y-2 z-10">
-                <div className="flex space-x-2 border-b border-slate-800 pb-2 mb-4">
-                  <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
-                </div>
-                
-                <div className="animate-pulse space-y-1">
-                  <p><span className="text-green-500">➜</span> <span className="text-blue-400">~</span> init_local_infrastructure --secure</p>
-                  <p className="text-slate-500">[INFO] Vérification de l'environnement...</p>
-                  <p className="text-slate-500">[INFO] Détection GPU: Mac Mini M4 Pro</p>
-                  <p className="text-slate-300">[OK] Modèle Mistral-7B chargé en mémoire locale</p>
-                  <p className="text-slate-300">[OK] Base de données vectorielle chiffrée</p>
-                  <p><span className="text-green-500">➜</span> <span className="text-blue-400">~</span> <span className="text-gold animate-pulse">Ready for deployment_</span></p>
-                </div>
-              </div>
-
-              {/* Background Glow derrière le terminal */}
-              <div className="absolute bottom-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none"></div>
             </div>
 
           </div>

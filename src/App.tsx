@@ -5,7 +5,6 @@ import { Hero } from './components/Hero';
 import { FileUploader } from './components/FileUploader';
 import { Results } from './components/Results';
 import { Pricing } from './components/Pricing';
-import { Mission } from './components/Mission';
 import { Account } from './components/Account';
 import { FeatureFeed } from './components/FeatureFeed';
 import { AuthModal } from './components/AuthModal';
@@ -265,8 +264,6 @@ function App() {
         return <Pricing />;
       case View.ACCOUNT:
         return user ? <Account user={user} onLogout={handleLogout} /> : null;
-      case View.MISSION:
-        return <Mission />;
       case View.FEED:
         return <FeatureFeed user={user} onAuthClick={() => setShowAuthModal(true)} />;
       default:
